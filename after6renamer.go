@@ -69,7 +69,7 @@ func saveToken(path string, token *oauth2.Token) {
 	json.NewEncoder(f).Encode(token)
 }
 
-func Authenticate() {
+func authenticate() *http.Client {
 	b, err := ioutil.ReadFile("credentials.json")
 	if err != nil {
 		log.Fatalf("Unable to read client secret file: %v", err)
@@ -81,14 +81,17 @@ func Authenticate() {
 		log.Fatalf("Unable to parse client secret file to config: %v", err)
 	}
 	client := getClient(config)
+	return client
 
+}
+
+func getCalendarEvents(client *http.Client) {
 	srv, err := calendar.New(client)
 	if err != nil {
 		log.Fatalf("Unable to retrieve Calendar client: %v", err)
 	}
-
 	t := time.Now().Format(time.RFC3339)
-	events, err := srv.Events.List("primary").ShowDeleted(false).
+	events, err := srv.Events.List("after6junction905954@gmail.com").ShowDeleted(false).
 		SingleEvents(true).TimeMin(t).MaxResults(10).OrderBy("startTime").Do()
 	if err != nil {
 		log.Fatalf("Unable to retrieve next ten of the user's events: %v", err)
@@ -105,4 +108,9 @@ func Authenticate() {
 			fmt.Printf("%v (%v)\n", item.Summary, date)
 		}
 	}
+}
+
+func GetEventsJson() {
+	client := authenticate()
+	getCalendarEvents(client)
 }

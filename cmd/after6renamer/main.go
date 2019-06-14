@@ -2,7 +2,7 @@ package main
 
 import "github.com/kangaechu/after6renamer"
 
-func main()  {
+func main() {
 
-	after6renamer.Authenticate()
+	after6renamer.GetEventsJson()
 }
