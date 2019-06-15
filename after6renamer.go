@@ -7,6 +7,7 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/calendar/v3"
+	"google.golang.org/api/option"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -15,7 +16,7 @@ import (
 )
 
 // Retrieve a token, saves the token, then returns the generated client.
-func getClient(config *oauth2.Config) *http.Client {
+func getClient(ctx context.Context, config *oauth2.Config) *http.Client {
 	// The file token.json stores the user's access and refresh tokens, and is
 	// created automatically when the authorization flow completes for the first
 	// time.
@@ -25,7 +26,7 @@ func getClient(config *oauth2.Config) *http.Client {
 		tok = getTokenFromWeb(config)
 		saveToken(tokFile, tok)
 	}
-	return config.Client(context.Background(), tok)
+	return config.Client(ctx, tok)
 }
 
 // Request a token from the web, then returns the retrieved token.
@@ -69,7 +70,7 @@ func saveToken(path string, token *oauth2.Token) {
 	json.NewEncoder(f).Encode(token)
 }
 
-func authenticate() *http.Client {
+func authenticate(ctx context.Context) *http.Client {
 	b, err := ioutil.ReadFile("credentials.json")
 	if err != nil {
 		log.Fatalf("Unable to read client secret file: %v", err)
@@ -78,15 +79,16 @@ func authenticate() *http.Client {
 	// If modifying these scopes, delete your previously saved token.json.
 	config, err := google.ConfigFromJSON(b, calendar.CalendarReadonlyScope)
 	if err != nil {
-		log.Fatalf("Unable to parse client secret file to config: %v", err)
+		log.Fatalf("Unable to retrieve Calendar client: %v", err)
 	}
-	client := getClient(config)
+	client := getClient(ctx, config)
 	return client
 
 }
 
 func getCalendarEvents(client *http.Client) {
-	srv, err := calendar.New(client)
+	option := option.WithHTTPClient(client)
+	srv, err := calendar.NewService(context.Background(), option)
 	if err != nil {
 		log.Fatalf("Unable to retrieve Calendar client: %v", err)
 	}
@@ -111,6 +113,7 @@ func getCalendarEvents(client *http.Client) {
 }
 
 func GetEventsJson() {
-	client := authenticate()
-	getCalendarEvents(client)
+	ctx := context.Background()
+	srv := authenticate(ctx)
+	getCalendarEvents(srv)
 }
