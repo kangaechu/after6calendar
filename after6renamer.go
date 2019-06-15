@@ -1,6 +1,7 @@
 package after6renamer
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"golang.org/x/net/context"
@@ -67,7 +68,10 @@ func saveToken(path string, token *oauth2.Token) {
 		log.Fatalf("Unable to cache oauth token: %v", err)
 	}
 	defer f.Close()
-	json.NewEncoder(f).Encode(token)
+	err = json.NewEncoder(f).Encode(token)
+	if err != nil {
+		log.Fatalf("Unable to write client secret file: %v", err)
+	}
 }
 
 func authenticate(ctx context.Context) *http.Client {
@@ -86,34 +90,48 @@ func authenticate(ctx context.Context) *http.Client {
 
 }
 
-func getCalendarEvents(client *http.Client) {
-	option := option.WithHTTPClient(client)
-	srv, err := calendar.NewService(context.Background(), option)
+func getAfter6Programs(client *http.Client) *calendar.Events {
+	opt := option.WithHTTPClient(client)
+	srv, err := calendar.NewService(context.Background(), opt)
 	if err != nil {
 		log.Fatalf("Unable to retrieve Calendar client: %v", err)
 	}
-	t := time.Now().Format(time.RFC3339)
+	timeMin := time.Now().AddDate(0, 0, -14).Format(time.RFC3339)
+	timeMax := time.Now().AddDate(0, 0, 7).Format(time.RFC3339)
 	events, err := srv.Events.List("after6junction905954@gmail.com").ShowDeleted(false).
-		SingleEvents(true).TimeMin(t).MaxResults(10).OrderBy("startTime").Do()
+		SingleEvents(true).TimeMin(timeMin).TimeMax(timeMax).OrderBy("startTime").Do()
 	if err != nil {
 		log.Fatalf("Unable to retrieve next ten of the user's events: %v", err)
 	}
-	fmt.Println("Upcoming events:")
-	if len(events.Items) == 0 {
-		fmt.Println("No upcoming events found.")
-	} else {
-		for _, item := range events.Items {
-			date := item.Start.DateTime
-			if date == "" {
-				date = item.Start.Date
-			}
-			fmt.Printf("%v (%v)\n", item.Summary, date)
-		}
-	}
+	return events
 }
 
 func GetEventsJson() {
 	ctx := context.Background()
 	srv := authenticate(ctx)
-	getCalendarEvents(srv)
+	events := getAfter6Programs(srv)
+
+	// convert to json
+	jsonBytes, err := json.Marshal(events.Items)
+	if err != nil {
+		fmt.Println("JSON Marshal error:", err)
+		return
+	}
+	out := new(bytes.Buffer)
+	err = json.Indent(out, jsonBytes, "", "    ")
+	if err != nil {
+		log.Fatal("cannot indent json", err)
+	}
+
+	// output to file
+	file, err := os.Create(`after6.json`)
+	if err != nil {
+		log.Fatal("error when opening json", err)
+	}
+	defer file.Close()
+
+	_, err = file.Write(out.Bytes())
+	if err != nil {
+		log.Fatal("cannot write json", err)
+	}
 }
