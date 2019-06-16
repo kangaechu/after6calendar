@@ -13,6 +13,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -21,11 +22,18 @@ func getClient(ctx context.Context, config *oauth2.Config) *http.Client {
 	// The file token.json stores the user's access and refresh tokens, and is
 	// created automatically when the authorization flow completes for the first
 	// time.
+	// スクリプトのディレクトリを取得
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	tokFile := "token.json"
-	tok, err := tokenFromFile(tokFile)
+	tokFilePath := filepath.Join(dir, tokFile)
+	tok, err := tokenFromFile(tokFilePath)
 	if err != nil {
 		tok = getTokenFromWeb(config)
-		saveToken(tokFile, tok)
+		saveToken(tokFilePath, tok)
 	}
 	return config.Client(ctx, tok)
 }
@@ -75,7 +83,13 @@ func saveToken(path string, token *oauth2.Token) {
 }
 
 func authenticate(ctx context.Context) *http.Client {
-	b, err := ioutil.ReadFile("credentials.json")
+	// スクリプトのディレクトリを取得
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	b, err := ioutil.ReadFile(filepath.Join(dir, "credentials.json"))
 	if err != nil {
 		log.Fatalf("Unable to read client secret file: %v", err)
 	}
