@@ -106,6 +106,21 @@ func getAfter6Programs(client *http.Client) *calendar.Events {
 	return events
 }
 
+func getAfter6Program(client *http.Client, start time.Time) *calendar.Event {
+	opt := option.WithHTTPClient(client)
+	srv, err := calendar.NewService(context.Background(), opt)
+	if err != nil {
+		log.Fatalf("Unable to retrieve Calendar client: %v", err)
+	}
+	timeMin := start.Format(time.RFC3339)
+	events, err := srv.Events.List("after6junction905954@gmail.com").ShowDeleted(false).
+		SingleEvents(true).TimeMin(timeMin).MaxResults(1).OrderBy("startTime").Do()
+	if err != nil {
+		log.Fatalf("Unable to retrieve next ten of the user's events: %v", err)
+	}
+	return events.Items[0]
+}
+
 func GetEventsJson() {
 	ctx := context.Background()
 	srv := authenticate(ctx)
@@ -134,4 +149,11 @@ func GetEventsJson() {
 	if err != nil {
 		log.Fatal("cannot write json", err)
 	}
+}
+
+func GetProgramSummary(start time.Time) *string {
+	ctx := context.Background()
+	srv := authenticate(ctx)
+	event := getAfter6Program(srv, start)
+	return &event.Summary
 }
