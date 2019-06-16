@@ -1,4 +1,4 @@
-package after6renamer
+package after6calendar
 
 import (
 	"bytes"

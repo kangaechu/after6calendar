@@ -1,4 +1,4 @@
-module github.com/kangaechu/after6renamer
+module github.com/kangaechu/after6calendar
 
 go 1.12
 
