@@ -112,8 +112,14 @@ func getAfter6Programs(client *http.Client) *calendar.Events {
 	}
 	timeMin := time.Now().AddDate(0, 0, -14).Format(time.RFC3339)
 	timeMax := time.Now().AddDate(0, 0, 7).Format(time.RFC3339)
-	events, err := srv.Events.List("after6junction905954@gmail.com").ShowDeleted(false).
-		SingleEvents(true).TimeMin(timeMin).TimeMax(timeMax).OrderBy("startTime").Do()
+	events, err := srv.Events.
+		List("after6junction905954@gmail.com").
+		ShowDeleted(false).
+		SingleEvents(true).
+		TimeMin(timeMin).
+		TimeMax(timeMax).
+		OrderBy("startTime").
+		Do()
 	if err != nil {
 		log.Fatalf("Unable to retrieve next ten of the user's events: %v", err)
 	}
@@ -127,12 +133,24 @@ func getAfter6Program(client *http.Client, start time.Time) *calendar.Event {
 		log.Fatalf("Unable to retrieve Calendar client: %v", err)
 	}
 	timeMin := start.Format(time.RFC3339)
-	events, err := srv.Events.List("after6junction905954@gmail.com").ShowDeleted(false).
-		SingleEvents(true).TimeMin(timeMin).MaxResults(1).OrderBy("startTime").Do()
+	timeMax := start.Add(1 * time.Hour).Format(time.RFC3339)
+	events, err := srv.Events.
+		List("after6junction905954@gmail.com").
+		ShowDeleted(false).
+		SingleEvents(true).
+		TimeMin(timeMin).
+		TimeMax(timeMax).
+		OrderBy("startTime").
+		Do()
 	if err != nil {
 		log.Fatalf("Unable to retrieve next ten of the user's events: %v", err)
 	}
-	return events.Items[0]
+	for _, event := range events.Items {
+		if event.Start.DateTime != "" { // 時間も指定されている
+			return event
+		}
+	}
+	return nil
 }
 
 func GetEventsJson() {
